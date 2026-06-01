@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FileText, Download, AlertTriangle, CheckCircle } from 'lucide-react';
+import { FileText, Download, AlertTriangle, CheckCircle, Send } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface LabRecord {
   id: number;
@@ -83,6 +84,18 @@ export default function LabResults() {
     }
   };
 
+  const handleEmailResult = async (recordId: number) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      await axios.post(`http://localhost:8000/api/records/${recordId}/send_email/`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success('Result emailed to patient');
+    } catch (err) {
+      toast.error('Failed to send email');
+    }
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-sm border p-6">
       <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
@@ -155,6 +168,13 @@ export default function LabResults() {
                     className="inline-flex items-center gap-1 text-blue-600 hover:bg-blue-50 px-3 py-1 rounded-md transition"
                   >
                     <Download size={14} /> PDF
+                  </button>
+                  <button
+                    onClick={() => handleEmailResult(r.id)}
+                    className="inline-flex items-center gap-1 text-green-600 hover:bg-green-50 px-3 py-1 rounded-md transition"
+                    title="Send to Patient Email"
+                  >
+                    <Send size={14} />
                   </button>
                 </td>
               </tr>

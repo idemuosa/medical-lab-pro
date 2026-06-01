@@ -5,6 +5,7 @@ from django.http import HttpResponse
 from .models import Patient, MedicalRecord, LabTest, AuditLog
 from .serializers import PatientSerializer, MedicalRecordSerializer, LabTestSerializer, AuditLogSerializer
 from core.permissions import IsAdminUser, IsDoctor, IsLabTech, IsReceptionist
+from .tasks import send_patient_result_notification
 from reportlab.pdfgen import canvas
 from io import BytesIO
 
@@ -139,3 +140,17 @@ class MedicalRecordViewSet(viewsets.ModelViewSet):
         response = HttpResponse(buffer, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="LabReport_{record.id}.pdf"'
         return response
+
+    @action(detail=True, methods=['post'])
+    def send_email(self, request, pk=None):
+        record = self.get_object()
+        if not record.patient.email:
+            return Response({"error": "Patient has no email"}, status=status.HTTP_400_BAD_REQUEST)
+
+        send_patient_result_notification.delay(
+            f"{record.patient.first_name} {record.patient.last_name}",
+            record.patient.email,
+            record.test.name if record.test else "Lab Test",
+            f"http://localhost:3000/dashboard/results/"
+        )
+        return Response({"status": "Email queued successfully"})

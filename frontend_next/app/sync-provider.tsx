@@ -19,6 +19,11 @@ export default function SyncProvider({ children }: { children: React.ReactNode }
           toast.success(data.message, {
             description: 'The patient registry and results have been updated.',
           });
+        } else if (data.type === 'INVENTORY_ALERT') {
+          toast.error(data.message, {
+            description: 'Please check the inventory tab to restock.',
+            duration: 8000,
+          });
         } else {
           toast.info(data.message);
         }

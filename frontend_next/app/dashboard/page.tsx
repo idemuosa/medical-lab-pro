@@ -10,6 +10,7 @@ import LabResults from './lab-results';
 import Billing from './billing';
 import Inventory from './inventory';
 import Analytics from './analytics';
+import PatientDetails from './patient-details';
 
 interface Patient {
   id: string;
@@ -42,6 +43,7 @@ export default function Dashboard() {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     first_name: '',
@@ -208,55 +210,42 @@ export default function Dashboard() {
 
         {/* Tab Navigation */}
         <div className="flex gap-6 mb-8 border-b border-gray-200 overflow-x-auto whitespace-nowrap">
-          <button
-            onClick={() => setActiveTab('patients')}
-            className={`pb-4 text-sm font-semibold transition-colors relative ${activeTab === 'patients' ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-          >
-            Patients Registry
-            {activeTab === 'patients' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600"></div>}
-          </button>
-          <button
-            onClick={() => setActiveTab('results')}
-            className={`pb-4 text-sm font-semibold transition-colors relative ${activeTab === 'results' ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-          >
-            Test Results
-            {activeTab === 'results' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600"></div>}
-          </button>
-          <button
-            onClick={() => setActiveTab('billing')}
-            className={`pb-4 text-sm font-semibold transition-colors relative ${activeTab === 'billing' ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-          >
-            Billing & Invoices
-            {activeTab === 'billing' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600"></div>}
-          </button>
-          {isLabTech && (
-            <button
-              onClick={() => setActiveTab('inventory')}
-              className={`pb-4 text-sm font-semibold transition-colors relative ${activeTab === 'inventory' ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-            >
-              Inventory
-              {activeTab === 'inventory' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600"></div>}
-            </button>
-          )}
-          {isAdmin && (
-            <button
-              onClick={() => setActiveTab('analytics')}
-              className={`pb-4 text-sm font-semibold transition-colors relative ${activeTab === 'analytics' ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-            >
-              Analytics
-              {activeTab === 'analytics' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600"></div>}
-            </button>
-          )}
-          {isAdmin && (
-            <button
-              onClick={() => setActiveTab('audit')}
-              className={`pb-4 text-sm font-semibold transition-colors relative ${activeTab === 'audit' ? 'text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
-            >
-              Audit Log
-              {activeTab === 'audit' && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-600"></div>}
-            </button>
-          )}
+          ...
         </div>
+
+        {/* Dashboard Summary Cards - Only visible on Patients tab for context */}
+        {activeTab === 'patients' && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div className="bg-white p-4 rounded-xl border shadow-sm flex items-center gap-4">
+              <div className="p-3 bg-blue-50 rounded-lg text-blue-600"><Users size={20} /></div>
+              <div>
+                <p className="text-xs text-gray-500 font-medium">Total Patients</p>
+                <p className="text-xl font-bold">{patients.length}</p>
+              </div>
+            </div>
+            <div className="bg-white p-4 rounded-xl border shadow-sm flex items-center gap-4">
+              <div className="p-3 bg-green-50 rounded-lg text-green-600"><Activity size={20} /></div>
+              <div>
+                <p className="text-xs text-gray-500 font-medium">Active Tests</p>
+                <p className="text-xl font-bold">24</p>
+              </div>
+            </div>
+            <div className="bg-white p-4 rounded-xl border shadow-sm flex items-center gap-4">
+              <div className="p-3 bg-purple-50 rounded-lg text-purple-600"><FileText size={20} /></div>
+              <div>
+                <p className="text-xs text-gray-500 font-medium">Pending Reports</p>
+                <p className="text-xl font-bold">7</p>
+              </div>
+            </div>
+            <div className="bg-white p-4 rounded-xl border shadow-sm flex items-center gap-4">
+              <div className="p-3 bg-red-50 rounded-lg text-red-600"><Bell size={20} /></div>
+              <div>
+                <p className="text-xs text-gray-500 font-medium">Alerts</p>
+                <p className="text-xl font-bold">3</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
@@ -295,8 +284,12 @@ export default function Dashboard() {
                       </thead>
                       <tbody className="divide-y">
                         {filteredPatients.map((p) => (
-                          <tr key={p.id} className="hover:bg-blue-50/20 transition">
-                            <td className="py-4 font-medium">{p.first_name} {p.last_name}</td>
+                          <tr
+                            key={p.id}
+                            onClick={() => setSelectedPatientId(p.id)}
+                            className="hover:bg-blue-50/20 transition cursor-pointer group"
+                          >
+                            <td className="py-4 font-medium group-hover:text-blue-600 transition">{p.first_name} {p.last_name}</td>
                             <td className="py-4 text-gray-600">{p.email}</td>
                             <td className="py-4">
                               <span className="bg-green-100 text-green-700 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full">Active</span>
@@ -425,10 +418,35 @@ export default function Dashboard() {
                 </div>
               </div>
             )}
+
+            <div className="bg-white rounded-xl shadow-sm border p-6">
+              <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                <Clock className="text-orange-500" size={20} /> Recent Activity
+              </h2>
+              <div className="space-y-4">
+                {auditLogs.slice(0, 5).map(log => (
+                  <div key={log.id} className="flex gap-3 text-xs">
+                    <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mt-1 shrink-0"></div>
+                    <div>
+                      <p className="text-gray-800 font-medium">{log.username} {log.action.toLowerCase()}d a {log.resource_type}</p>
+                      <p className="text-gray-400 mt-0.5">{new Date(log.timestamp).toLocaleTimeString()}</p>
+                    </div>
+                  </div>
+                ))}
+                {auditLogs.length === 0 && <p className="text-gray-400 text-center py-4 text-xs italic">No recent activity.</p>}
+              </div>
+            </div>
           </div>
 
         </div>
       </div>
+
+      {selectedPatientId && (
+        <PatientDetails
+          patientId={selectedPatientId}
+          onClose={() => setSelectedPatientId(null)}
+        />
+      )}
     </div>
   );
 }
