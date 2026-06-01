@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# Python
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Databases & Environment
+db.sqlite3
+.env
+.env.local
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.dockerignore
