@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Invoice, Payment
+from .models import Invoice, Payment, InventoryItem
 
 class InventoryItemSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()

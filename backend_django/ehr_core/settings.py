@@ -120,8 +120,9 @@ CORS_ALLOW_ALL_ORIGINS = True # Change to specific frontend URLs in production
 
 # Celery Configuration - Synchronous for local development
 CELERY_TASK_ALWAYS_EAGER = True
+CELERY_TASK_EAGER_PROPAGATES = True
 CELERY_BROKER_URL = 'memory://'
-CELERY_RESULT_BACKEND = 'cache'
+CELERY_RESULT_BACKEND = 'rpc://'
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 

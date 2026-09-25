@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
-import { Users, Activity, Bell, PlusCircle, Database, RefreshCw, Lock, FileText, Receipt, ShieldCheck, TrendingUp, Microscope, BarChart3, Package } from 'lucide-react';
+import { Users, Activity, Bell, PlusCircle, Database, RefreshCw, Lock, FileText, Receipt, ShieldCheck, TrendingUp, Microscope, BarChart3, Package, Clock } from 'lucide-react';
 import { useAuth } from '../auth-provider';
 import { useRouter } from 'next/navigation';
 import LabResults from './lab-results';
@@ -210,7 +210,56 @@ export default function Dashboard() {
 
         {/* Tab Navigation */}
         <div className="flex gap-6 mb-8 border-b border-gray-200 overflow-x-auto whitespace-nowrap">
-          ...
+          <button
+            onClick={() => setActiveTab('patients')}
+            className={`pb-3 text-sm font-medium flex items-center gap-2 border-b-2 transition ${
+              activeTab === 'patients' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Users size={18} /> Patients
+          </button>
+          <button
+            onClick={() => setActiveTab('results')}
+            className={`pb-3 text-sm font-medium flex items-center gap-2 border-b-2 transition ${
+              activeTab === 'results' ? 'border-purple-600 text-purple-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <FileText size={18} /> Lab Results
+          </button>
+          <button
+            onClick={() => setActiveTab('billing')}
+            className={`pb-3 text-sm font-medium flex items-center gap-2 border-b-2 transition ${
+              activeTab === 'billing' ? 'border-green-600 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Receipt size={18} /> Billing
+          </button>
+          <button
+            onClick={() => setActiveTab('inventory')}
+            className={`pb-3 text-sm font-medium flex items-center gap-2 border-b-2 transition ${
+              activeTab === 'inventory' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <Package size={18} /> Inventory
+          </button>
+          <button
+            onClick={() => setActiveTab('analytics')}
+            className={`pb-3 text-sm font-medium flex items-center gap-2 border-b-2 transition ${
+              activeTab === 'analytics' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <BarChart3 size={18} /> Analytics
+          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setActiveTab('audit')}
+              className={`pb-3 text-sm font-medium flex items-center gap-2 border-b-2 transition ${
+                activeTab === 'audit' ? 'border-red-600 text-red-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <ShieldCheck size={18} /> Security Audit
+            </button>
+          )}
         </div>
 
         {/* Dashboard Summary Cards - Only visible on Patients tab for context */}
