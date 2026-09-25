@@ -60,7 +60,7 @@ export default function SyncProvider({ children }: { children: React.ReactNode }
     const interval = setInterval(syncData, 5 * 60 * 1000);
 
     return () => {
-      socket.disconnect();
+      socket.close();
       clearInterval(interval);
     };
   }, []);
