@@ -63,12 +63,12 @@ TEMPLATES = [
 WSGI_APPLICATION = 'ehr_core.wsgi.application'
 ASGI_APPLICATION = 'ehr_core.asgi.application'
 
-# Database - Switched to PostgreSQL (with SQLite fallback for dev)
+# Database - PostgreSQL
 import dj_database_url
 
 DATABASES = {
     'default': dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}",
+        default='postgres://postgres:password@localhost:5432/ehr_db',
         conn_max_age=600,
     )
 }
