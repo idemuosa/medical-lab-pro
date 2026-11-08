@@ -74,3 +74,53 @@ class PatientsTests(TestCase):
         response = self.client.get(f'/api/records/{record.id}/download_pdf/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response['Content-Type'], 'application/pdf')
+
+    def test_ai_analysis_action_fallback(self):
+        self.client.force_authenticate(user=self.admin)
+        record = MedicalRecord.objects.create(
+            patient=self.patient,
+            test=self.test,
+            result_value=125.0,
+            status="Completed"
+        )
+        # Calling without running FastAPI should gracefully fallback
+        response = self.client.post(f'/api/records/{record.id}/ai_analysis/')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertIn('insight', response.data)
+        self.assertIn('alerts', response.data)
+
+    def test_ai_analysis_action_mocked(self):
+        from unittest.mock import patch, MagicMock
+        self.client.force_authenticate(user=self.admin)
+        record = MedicalRecord.objects.create(
+            patient=self.patient,
+            test=self.test,
+            result_value=125.0,
+            status="Completed"
+        )
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "status": "Success",
+            "insight": "AI predicted high risk",
+            "alerts": ["High glucose"]
+        }
+        with patch('httpx.Client.post', return_value=mock_response):
+            response = self.client.post(f'/api/records/{record.id}/ai_analysis/')
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual(response.data['status'], "Success")
+            self.assertEqual(response.data['insight'], "AI predicted high risk")
+
+    def test_socket_server_notification_signal(self):
+        from unittest.mock import patch
+        with patch('patients.signals.notify_socket_server') as mock_notify:
+            patient = Patient.objects.create(
+                first_name="Bob",
+                last_name="Johnson",
+                date_of_birth="1980-01-01",
+                gender="Male",
+                phone_number="1234567890",
+                email="bob@example.com",
+                address="100 Main St"
+            )
+            mock_notify.assert_called()

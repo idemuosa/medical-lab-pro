@@ -3,39 +3,59 @@
 import React, { useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'sonner';
+import { io } from 'socket.io-client';
 
 export default function SyncProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
-    // 1. Setup Real-time Listener (Django Channels)
-    const socket = new WebSocket('ws://localhost:8000/ws/notifications/');
-
-    socket.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      console.log('NEW NOTIFICATION:', data);
-
-      if (data.message) {
-        if (data.type === 'NEW_RESULT') {
-          toast.success(data.message, {
-            description: 'The patient registry and results have been updated.',
-          });
-        } else if (data.type === 'INVENTORY_ALERT') {
-          toast.error(data.message, {
-            description: 'Please check the inventory tab to restock.',
-            duration: 8000,
-          });
-        } else {
-          toast.info(data.message);
-        }
+    const handleNotification = (data: { message?: string; type?: string }) => {
+      if (!data?.message) return;
+      if (data.type === 'NEW_RESULT') {
+        toast.success(data.message, {
+          description: 'The patient registry and results have been updated.',
+        });
+      } else if (data.type === 'INVENTORY_ALERT') {
+        toast.error(data.message, {
+          description: 'Please check the inventory tab to restock.',
+          duration: 8000,
+        });
+      } else {
+        toast.info(data.message);
       }
     };
 
-    socket.onclose = () => {
-      console.log('WebSocket disconnected. Attempting to reconnect...');
-      // Reconnection logic could go here
-    };
+    // 1. Setup Real-time Listener (Django Channels)
+    let socket: WebSocket | null = null;
+    try {
+      socket = new WebSocket('ws://localhost:8000/ws/notifications/');
+      socket.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          handleNotification(data);
+        } catch (e) {
+          console.error('Error parsing WS notification', e);
+        }
+      };
+      socket.onerror = () => {
+        // Silently handled if channels in-memory
+      };
+    } catch (e) {
+      console.warn('Could not initialize WebSocket connection');
+    }
 
-    // 2. LocalStorage Sync Logic
+    // 2. Setup Real-time Listener (Node.js Socket Server on port 4000)
+    const nodeSocket = io('http://localhost:4000', {
+      transports: ['websocket', 'polling'],
+      reconnectionAttempts: 5,
+      timeout: 3000
+    });
+
+    nodeSocket.on('global_notification', (data) => {
+      console.log('Received global socket notification:', data);
+      handleNotification(data);
+    });
+
+    // 3. LocalStorage Sync Logic
     const syncData = async () => {
       const localPatients = JSON.parse(localStorage.getItem('pending_patients') || '[]');
       const token = localStorage.getItem('access_token');
@@ -60,7 +80,10 @@ export default function SyncProvider({ children }: { children: React.ReactNode }
     const interval = setInterval(syncData, 5 * 60 * 1000);
 
     return () => {
-      socket.close();
+      if (socket) {
+        socket.close();
+      }
+      nodeSocket.disconnect();
       clearInterval(interval);
     };
   }, []);
