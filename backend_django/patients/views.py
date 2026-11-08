@@ -1,3 +1,6 @@
+import os
+import logging
+import httpx
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -8,6 +11,8 @@ from core.permissions import IsAdminUser, IsDoctor, IsLabTech, IsReceptionist
 from .tasks import send_patient_result_notification
 from reportlab.pdfgen import canvas
 from io import BytesIO
+
+logger = logging.getLogger(__name__)
 
 class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = AuditLog.objects.all().order_by('-timestamp')
@@ -154,3 +159,35 @@ class MedicalRecordViewSet(viewsets.ModelViewSet):
             f"http://localhost:3000/dashboard/results/"
         )
         return Response({"status": "Email queued successfully"})
+
+    @action(detail=True, methods=['post'])
+    def ai_analysis(self, request, pk=None):
+        record = self.get_object()
+        fastapi_url = os.environ.get('FASTAPI_URL', 'http://localhost:8080')
+        payload = {
+            "patient_id": str(record.patient.id),
+            "lab_results": {
+                record.test.name if record.test else "test": record.result_value
+            }
+        }
+        try:
+            with httpx.Client(timeout=3.0) as client:
+                res = client.post(f"{fastapi_url}/analyze-results", json=payload)
+                if res.status_code == 200:
+                    return Response(res.json(), status=status.HTTP_200_OK)
+                return Response(
+                    {"status": "Error", "insight": f"AI service returned code {res.status_code}", "alerts": []},
+                    status=status.HTTP_502_BAD_GATEWAY
+                )
+        except Exception as exc:
+            logger.warning(f"AI service connection error: {exc}")
+            # Fallback deterministic analysis based on normal ranges
+            alerts = []
+            insight = "Rule-based analysis: Results are within normal range."
+            if record.is_abnormal:
+                alerts.append(f"{record.test.name if record.test else 'Test'} abnormal")
+                insight = f"Rule-based analysis: Value of {record.result_value} is outside reference limits."
+            return Response(
+                {"status": "Fallback", "insight": insight, "alerts": alerts},
+                status=status.HTTP_200_OK
+            )

@@ -167,6 +167,8 @@ export default function Dashboard() {
 
   const canRegister = ['ADMIN', 'RECEPTIONIST'].includes(user.role);
   const isLabTech = user.role === 'LAB_TECH' || user.role === 'ADMIN';
+  const canViewBilling = ['ADMIN', 'CASHIER'].includes(user.role);
+  const canViewInventory = ['ADMIN', 'LAB_TECH'].includes(user.role);
   const isAdmin = user.role === 'ADMIN';
 
   const filteredPatients = patients.filter(p =>
@@ -226,22 +228,26 @@ export default function Dashboard() {
           >
             <FileText size={18} /> Lab Results
           </button>
-          <button
-            onClick={() => setActiveTab('billing')}
-            className={`pb-3 text-sm font-medium flex items-center gap-2 border-b-2 transition ${
-              activeTab === 'billing' ? 'border-green-600 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <Receipt size={18} /> Billing
-          </button>
-          <button
-            onClick={() => setActiveTab('inventory')}
-            className={`pb-3 text-sm font-medium flex items-center gap-2 border-b-2 transition ${
-              activeTab === 'inventory' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            <Package size={18} /> Inventory
-          </button>
+          {canViewBilling && (
+            <button
+              onClick={() => setActiveTab('billing')}
+              className={`pb-3 text-sm font-medium flex items-center gap-2 border-b-2 transition ${
+                activeTab === 'billing' ? 'border-green-600 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Receipt size={18} /> Billing
+            </button>
+          )}
+          {canViewInventory && (
+            <button
+              onClick={() => setActiveTab('inventory')}
+              className={`pb-3 text-sm font-medium flex items-center gap-2 border-b-2 transition ${
+                activeTab === 'inventory' ? 'border-orange-600 text-orange-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              <Package size={18} /> Inventory
+            </button>
+          )}
           <button
             onClick={() => setActiveTab('analytics')}
             className={`pb-3 text-sm font-medium flex items-center gap-2 border-b-2 transition ${
@@ -353,29 +359,53 @@ export default function Dashboard() {
             )}
 
             {activeTab === 'results' && <LabResults />}
-            {activeTab === 'billing' && <Billing />}
-            {activeTab === 'inventory' && <Inventory />}
+            {activeTab === 'billing' && (
+              canViewBilling ? <Billing /> : (
+                <div className="bg-white rounded-xl shadow-sm border p-8 text-center text-gray-500">
+                  <Lock className="mx-auto text-amber-500 mb-2" size={32} />
+                  <p className="font-semibold text-gray-700">Access Restricted</p>
+                  <p className="text-xs">Your role ({user.role}) does not have permission to access billing.</p>
+                </div>
+              )
+            )}
+            {activeTab === 'inventory' && (
+              canViewInventory ? <Inventory /> : (
+                <div className="bg-white rounded-xl shadow-sm border p-8 text-center text-gray-500">
+                  <Lock className="mx-auto text-amber-500 mb-2" size={32} />
+                  <p className="font-semibold text-gray-700">Access Restricted</p>
+                  <p className="text-xs">Your role ({user.role}) does not have permission to view inventory.</p>
+                </div>
+              )
+            )}
             {activeTab === 'analytics' && <Analytics />}
 
             {activeTab === 'audit' && (
-              <div className="bg-white rounded-xl shadow-sm border p-6">
-                 <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-                  <ShieldCheck className="text-red-500" /> Security Audit Log
-                </h2>
-                <div className="space-y-4">
-                  {auditLogs.length > 0 ? auditLogs.map(log => (
-                    <div key={log.id} className="flex items-center justify-between border-b pb-2 text-sm">
-                      <div>
-                        <span className="font-bold text-blue-900">{log.username}</span>
-                        <span className="mx-2 text-gray-400">performed</span>
-                        <span className="bg-gray-100 px-2 py-0.5 rounded text-xs">{log.action}</span>
-                        <span className="ml-2 text-gray-500">on {log.resource_type}</span>
+              isAdmin ? (
+                <div className="bg-white rounded-xl shadow-sm border p-6">
+                  <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
+                    <ShieldCheck className="text-red-500" /> Security Audit Log
+                  </h2>
+                  <div className="space-y-4">
+                    {auditLogs.length > 0 ? auditLogs.map(log => (
+                      <div key={log.id} className="flex items-center justify-between border-b pb-2 text-sm">
+                        <div>
+                          <span className="font-bold text-blue-900">{log.username}</span>
+                          <span className="mx-2 text-gray-400">performed</span>
+                          <span className="bg-gray-100 px-2 py-0.5 rounded text-xs">{log.action}</span>
+                          <span className="ml-2 text-gray-500">on {log.resource_type}</span>
+                        </div>
+                        <span className="text-[10px] text-gray-400">{new Date(log.timestamp).toLocaleString()}</span>
                       </div>
-                      <span className="text-[10px] text-gray-400">{new Date(log.timestamp).toLocaleString()}</span>
-                    </div>
-                  )) : <p className="text-gray-400 text-center py-8">No audit logs found.</p>}
+                    )) : <p className="text-gray-400 text-center py-8">No audit logs found.</p>}
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="bg-white rounded-xl shadow-sm border p-8 text-center text-gray-500">
+                  <Lock className="mx-auto text-amber-500 mb-2" size={32} />
+                  <p className="font-semibold text-gray-700">Access Restricted</p>
+                  <p className="text-xs">Only administrators can access security audit logs.</p>
+                </div>
+              )
             )}
           </div>
 

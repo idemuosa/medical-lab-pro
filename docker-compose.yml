@@ -21,8 +21,8 @@ services:
       - DATABASE_URL=postgres://postgres:password@db:5432/ehr_db
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
-      - REDIS_URL=redis://redis:6379/0
-      - CELERY_BROKER_URL=redis://redis:6379/0
+      - SOCKET_SERVER_URL=http://socket_server:4000
+      - FASTAPI_URL=http://backend_fastapi:8080
     depends_on:
       - db
       - redis
@@ -37,8 +37,8 @@ services:
       - DATABASE_URL=postgres://postgres:password@db:5432/ehr_db
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
-      - REDIS_URL=redis://redis:6379/0
-      - CELERY_BROKER_URL=redis://redis:6379/0
+      - SOCKET_SERVER_URL=http://socket_server:4000
+      - FASTAPI_URL=http://backend_fastapi:8080
     depends_on:
       - db
       - redis
