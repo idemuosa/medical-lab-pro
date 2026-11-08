@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { X, User, Phone, Mail, Calendar, History, FileText, Download } from 'lucide-react';
+import { X, User, Phone, Mail, Calendar, History, FileText, Download, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface PatientDetailsProps {
@@ -38,6 +38,66 @@ export default function PatientDetails({ patientId, onClose }: PatientDetailsPro
     };
     fetchData();
   }, [patientId]);
+
+  const downloadPDF = async (recordId: number) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await axios.get(`http://localhost:8000/api/records/${recordId}/download_pdf/`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob'
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Result_${recordId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+      toast.success('Downloaded lab result PDF');
+    } catch (err) {
+      console.error('Error downloading PDF', err);
+      toast.error('Failed to download PDF');
+    }
+  };
+
+  const printPDF = async (recordId: number) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await axios.get(`http://localhost:8000/api/records/${recordId}/download_pdf/`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob'
+      });
+      const blobUrl = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      iframe.src = blobUrl;
+      document.body.appendChild(iframe);
+
+      iframe.onload = () => {
+        try {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+        } catch (e) {
+          console.error('Failed to print from iframe', e);
+          window.open(blobUrl, '_blank')?.print();
+        } finally {
+          setTimeout(() => {
+            document.body.removeChild(iframe);
+            window.URL.revokeObjectURL(blobUrl);
+          }, 60000);
+        }
+      };
+    } catch (err) {
+      console.error('Error printing PDF', err);
+      toast.error('Failed to print lab result');
+    }
+  };
 
   if (loading) return null;
 
@@ -120,9 +180,27 @@ export default function PatientDetails({ patientId, onClose }: PatientDetailsPro
                         {record.is_abnormal ? 'Abnormal' : 'Normal'}
                       </div>
                     </div>
-                    <div className="flex items-center gap-4 text-sm">
-                      <p className="text-gray-700">Result: <span className="font-mono font-bold">{record.result_value} {record.test_unit}</span></p>
-                      <p className="text-gray-400 text-xs italic">Range: {record.test_range}</p>
+                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
+                      <div className="flex items-center gap-4 text-sm">
+                        <p className="text-gray-700">Result: <span className="font-mono font-bold">{record.result_value} {record.test_unit}</span></p>
+                        <p className="text-gray-400 text-xs italic">Range: {record.test_range}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => downloadPDF(record.id)}
+                          className="inline-flex items-center gap-1 text-xs text-blue-600 hover:bg-blue-50 px-2 py-1 rounded transition"
+                          title="Download PDF"
+                        >
+                          <Download size={13} /> PDF
+                        </button>
+                        <button
+                          onClick={() => printPDF(record.id)}
+                          className="inline-flex items-center gap-1 text-xs text-slate-700 hover:bg-slate-100 px-2 py-1 rounded transition"
+                          title="Print Lab Result"
+                        >
+                          <Printer size={13} /> Print
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
