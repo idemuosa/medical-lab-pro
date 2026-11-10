@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FileText, Download, AlertTriangle, CheckCircle, Send, Sparkles } from 'lucide-react';
+import { FileText, Download, AlertTriangle, CheckCircle, Send, Sparkles, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface LabRecord {
@@ -81,14 +81,56 @@ export default function LabResults() {
         headers: { Authorization: `Bearer ${token}` },
         responseType: 'blob'
       });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', `Result_${recordId}.pdf`);
       document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
+      setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+      toast.success('Downloaded lab result PDF');
     } catch (err) {
       console.error('Error downloading PDF', err);
+      toast.error('Failed to download PDF');
+    }
+  };
+
+  const printResult = async (recordId: number) => {
+    try {
+      const token = localStorage.getItem('access_token');
+      const response = await axios.get(`http://localhost:8000/api/records/${recordId}/download_pdf/`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob'
+      });
+      const blobUrl = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      iframe.src = blobUrl;
+      document.body.appendChild(iframe);
+
+      iframe.onload = () => {
+        try {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+        } catch (e) {
+          console.error('Failed to print from iframe', e);
+          window.open(blobUrl, '_blank')?.print();
+        } finally {
+          setTimeout(() => {
+            document.body.removeChild(iframe);
+            window.URL.revokeObjectURL(blobUrl);
+          }, 60000);
+        }
+      };
+    } catch (err) {
+      console.error('Error printing PDF', err);
+      toast.error('Failed to print lab result');
     }
   };
 
@@ -202,8 +244,16 @@ export default function LabResults() {
                     <button
                       onClick={() => downloadPDF(r.id)}
                       className="inline-flex items-center gap-1 text-blue-600 hover:bg-blue-50 px-3 py-1 rounded-md transition"
+                      title="Download PDF"
                     >
                       <Download size={14} /> PDF
+                    </button>
+                    <button
+                      onClick={() => printResult(r.id)}
+                      className="inline-flex items-center gap-1 text-slate-700 hover:bg-slate-100 px-3 py-1 rounded-md transition"
+                      title="Print Lab Result"
+                    >
+                      <Printer size={14} /> Print
                     </button>
                     <button
                       onClick={() => handleEmailResult(r.id)}
